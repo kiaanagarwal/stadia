@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stadia</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'><rect width='140' height='140' rx='30' fill='%23eef1ec'/><rect x='22' y='32' width='96' height='76' rx='6' fill='none' stroke='%231c6e47' stroke-width='7'/><line x1='70' y1='32' x2='70' y2='108' stroke='%231c6e47' stroke-width='5'/><circle cx='70' cy='70' r='15' fill='none' stroke='%231c6e47' stroke-width='5'/><circle cx='70' cy='70' r='8' fill='%23d3362b'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#eef1ec; --panel:#ffffff; --ink:#15201a; --muted:#5d6b62; --line:#d9dfd8;
+  --accent:#1c6e47; --accent-soft:#dcebe2; --live:#d3362b; --live-soft:#fbe3e0;
+  --done:#6b7470; --soon:#9a6a12; --soon-soft:#f6ecd6; --scrim:rgba(10,16,12,.55);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --ground:#0f1511; --panel:#18211b; --ink:#e7eee9; --muted:#95a39a; --line:#2a352e;
+    --accent:#5cc48f; --accent-soft:#1d3327; --live:#ff6a5c; --live-soft:#3a1c19;
+    --done:#8b958f; --soon:#e0b25a; --soon-soft:#352b17; --scrim:rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font:15px/1.45 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1180px;margin:0 auto}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:28px 16px}
+h1{font:700 44px/0.95 "Barlow Condensed","Arial Narrow",sans-serif;letter-spacing:.01em;margin:0;text-transform:uppercase}
+h1{display:flex;align-items:center;gap:12px}
+.logo{width:1.15em;height:1.15em;flex:none;border-radius:22%;box-shadow:0 0 0 1px var(--line)}
+.logo-dot{transform-origin:70px 70px;animation:pulse 1.6s infinite}
+@media (prefers-reduced-motion:reduce){.logo-dot{animation:none}}
+.sub{color:var(--muted);margin:6px 0 0;font-size:14px}
+.refresh{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.totals{display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:14px;font-size:14px;color:var(--muted)}
+.totals b{font:700 22px/1 "Barlow Condensed",sans-serif;color:var(--ink);margin-right:4px;font-variant-numeric:tabular-nums}
+.totals .l b{color:var(--live)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.chip{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 14px;font:600 16px/1 "Barlow Condensed","Arial Narrow",sans-serif;letter-spacing:.04em;text-transform:uppercase}
+.chip small{font:600 12px Figtree,sans-serif;color:var(--muted);margin-left:5px;letter-spacing:0}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.chip[aria-pressed="true"] small{color:inherit;opacity:.8}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-block:12px 22px}
+#q{flex:1 1 260px;min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:10px 12px;font:inherit;color:var(--ink)}
+.section{margin-bottom:30px}
+.section h2{font:700 24px/1 "Barlow Condensed","Arial Narrow",sans-serif;text-transform:uppercase;letter-spacing:.03em;margin:0 0 12px;display:flex;align-items:center;gap:10px}
+.section h2 small{font:500 13px Figtree,sans-serif;color:var(--muted);text-transform:none;letter-spacing:0}
+.section.in h2{color:var(--live)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;text-align:left;width:100%}
+.card:hover{border-color:var(--accent)}
+.card.in{border-color:color-mix(in srgb,var(--live) 45%,var(--line))}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--muted)}
+.lg{min-width:0}
+.lg .sport{font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;font-size:11.5px;display:block}
+.lg .name{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{flex:none;font:700 11.5px/1 Figtree,sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:5px 8px;border-radius:6px;max-width:55%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill.in{background:var(--live-soft);color:var(--live)}
+.pill.in::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--live);margin-right:6px;vertical-align:1px;animation:pulse 1.4s infinite}
+.pill.pre{background:var(--soon-soft);color:var(--soon)}
+.pill.post{background:var(--line);color:var(--done)}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.pill.in::before{animation:none}}
+.team{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:10px}
+.team img,.team .ph{width:28px;height:28px;object-fit:contain;border-radius:4px}
+.team .ph{background:var(--accent-soft);display:grid;place-items:center;font:700 12px "Barlow Condensed",sans-serif;color:var(--accent)}
+.team .nm{font-weight:600;overflow-wrap:break-word;min-width:0}
+.team.win .nm{color:var(--accent)}
+.team .score{max-width:12ch;font:700 20px/1.05 "Barlow Condensed","Arial Narrow",sans-serif;font-variant-numeric:tabular-nums;text-align:right}
+.where{display:flex;gap:8px;align-items:flex-start;border-top:1px dashed var(--line);padding-top:10px;font-size:13.5px}
+.where svg{flex:none;margin-top:2px;color:var(--accent)}
+.where b{font-weight:600}
+.where .when{color:var(--muted);display:block}
+.cta{font-size:12.5px;font-weight:600;color:var(--accent);display:flex;align-items:center;gap:6px}
+.empty,.err{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:28px;text-align:center;color:var(--muted)}
+.err{color:var(--live)}
+/* detail panel */
+dialog{border:0;padding:0;background:var(--panel);color:var(--ink);border-radius:16px;width:min(760px,calc(100% - 24px));max-height:calc(100% - 24px)}
+dialog::backdrop{background:var(--scrim)}
+.dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px 0}
+.dhead h3{font:700 28px/1.05 "Barlow Condensed",sans-serif;margin:4px 0 0;text-transform:uppercase;text-wrap:balance}
+.close{border:1px solid var(--line);background:var(--panel);border-radius:8px;width:36px;height:36px;font-size:20px;line-height:1;flex:none}
+.dbody{padding:16px 20px 22px;display:flex;flex-direction:column;gap:16px}
+.player{background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9;max-width:100%;display:grid;place-items:center}
+.player video{width:100%;height:100%;display:block}
+.novideo{color:#c9d2cc;text-align:center;padding:20px;font-size:14px}
+.novideo a{color:#7fe0ac;font-weight:600}
+.clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.clip{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:0;overflow:hidden;text-align:left;font-size:12.5px}
+.clip[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.clip img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--line)}
+.clip span{display:block;padding:6px 8px;line-height:1.3}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.fact h4{margin:0 0 4px;font:600 12px Figtree,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.fact p{margin:0;font-weight:600}
+.fact p span{display:block;font-weight:400;color:var(--muted);font-size:13.5px}
+.tv{display:flex;flex-wrap:wrap;gap:6px}
+.tv span{background:var(--accent-soft);border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.links a{color:var(--ink);text-decoration:none}
+.muted{color:var(--muted);font-size:13.5px;margin:0}
+/* sign-in */
+.login{min-height:100vh;display:grid;place-items:center;padding-block:32px}
+.login form{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 24px;width:min(380px,100%);display:flex;flex-direction:column;gap:14px}
+.login h1{font-size:40px}
+.login label{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:14px}
+.login input[type=text],.login input[type=password]{border:1px solid var(--line);background:var(--ground);border-radius:10px;padding:11px 12px;font:inherit;color:var(--ink)}
+.login .keep{flex-direction:row;align-items:center;gap:8px;font-weight:500;color:var(--muted)}
+.login .go{background:var(--accent);color:var(--panel);border:0;border-radius:10px;padding:12px;font:700 18px/1 "Barlow Condensed",sans-serif;letter-spacing:.06em;text-transform:uppercase}
+.login .go:disabled{opacity:.6;cursor:wait}
+.login .bad{color:var(--live);font-size:13.5px;margin:0}
+@media (max-width:420px){h1{font-size:36px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<section class="login" id="login">
+  <form id="loginForm" novalidate>
+    <div>
+      <h1><svg class="logo" viewBox="0 0 140 140" aria-hidden="true"><rect width="140" height="140" rx="30" fill="#eef1ec"/><rect x="22" y="32" width="96" height="76" rx="6" fill="none" stroke="#1c6e47" stroke-width="7"/><line x1="70" y1="32" x2="70" y2="108" stroke="#1c6e47" stroke-width="5"/><circle cx="70" cy="70" r="15" fill="none" stroke="#1c6e47" stroke-width="5"/><circle class="logo-dot" cx="70" cy="70" r="8" fill="#d3362b"/></svg>Stadia</h1>
+      <p class="sub">Sign in to see every match in the world.</p>
+    </div>
+    <label for="user">Email<input id="user" type="email" autocomplete="username" placeholder="you@matchfinder.app" autocapitalize="none" spellcheck="false" required></label>
+    <label for="pass">Password<input id="pass" type="password" autocomplete="current-password" required></label>
+    <label class="keep" for="showpw"><input id="showpw" type="checkbox"> Show password</label>
+    <label class="keep" for="keep"><input id="keep" type="checkbox" checked> Keep me signed in on this computer</label>
+    <p class="bad" id="bad" hidden>That email or password isn't right. Check the login-details file and try again.</p>
+    <button class="go" id="go" type="submit">Sign in</button>
+  </form>
+</section>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <div>
+      <h1><svg class="logo" viewBox="0 0 140 140" aria-hidden="true"><rect width="140" height="140" rx="30" fill="#eef1ec"/><rect x="22" y="32" width="96" height="76" rx="6" fill="none" stroke="#1c6e47" stroke-width="7"/><line x1="70" y1="32" x2="70" y2="108" stroke="#1c6e47" stroke-width="5"/><circle cx="70" cy="70" r="15" fill="none" stroke="#1c6e47" stroke-width="5"/><circle class="logo-dot" cx="70" cy="70" r="8" fill="#d3362b"/></svg>Stadia</h1>
+      <p class="sub">Every match in the world today: who's playing, which ground, and where to watch. Tap a match for video.</p>
+    </div>
+    <div class="refresh"><span id="stamp">Loading…</span><button class="btn" id="reload" type="button">Refresh</button><button class="btn" id="logout" type="button">Sign out</button></div>
+  </header>
+
+  <div class="totals" id="totals"></div>
+  <nav class="chips" id="sports" aria-label="Sport"></nav>
+  <div class="bar">
+    <input id="q" type="search" placeholder="Search any team, player, league, ground or city…" autocomplete="off">
+  </div>
+  <main id="out"><div class="empty">Loading matches from around the world…</div></main>
+</div>
+
+<dialog id="dlg" aria-labelledby="dtitle">
+  <div class="dhead">
+    <div><div class="muted" id="dleague"></div><h3 id="dtitle"></h3></div>
+    <button class="close" id="dclose" type="button" aria-label="Close">×</button>
+  </div>
+  <div class="dbody" id="dbody"></div>
+</dialog>
+
+<script>
+// Every sport feed we pull and merge. "" = ESPN's own top-events mix (catches NFL, college, golf, volleyball…).
+const FEEDS = ["", "cricket","soccer","tennis","basketball","football","baseball","hockey","rugby","mma","golf","volleyball","racing"];
+const NICE = {cricket:"Cricket",soccer:"Football",tennis:"Tennis",basketball:"Basketball",football:"American Football",
+  baseball:"Baseball",hockey:"Ice Hockey",rugby:"Rugby",mma:"MMA / UFC",golf:"Golf",volleyball:"Volleyball",racing:"Motor Racing"};
+const API = "https://site.web.api.espn.com/apis/v2/scoreboard/header?lang=en&region=in";
+const SUMMARY = (s,l,id) => `https://site.api.espn.com/apis/site/v2/sports/${s}/${l}/summary?event=${id}`;
+
+let sport = "all", q = "", data = [], timer;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pin = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>';
+const play = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>';
+const ORDER = {in:0, pre:1, post:2};
+
+async function load(){
+  $("stamp").textContent = "Updating…";
+  const results = await Promise.allSettled(FEEDS.map(f =>
+    fetch(API + (f ? "&sport=" + f : "")).then(r => r.ok ? r.json() : Promise.reject(r.status))));
+  const seen = new Map();
+  for(const r of results){
+    if(r.status !== "fulfilled") continue;
+    for(const sp of r.value.sports || []) for(const lg of sp.leagues || []) for(const e of lg.events || []){
+      const key = sp.slug + ":" + e.id;
+      if(!seen.has(key)) seen.set(key, {sp: sp.slug, spName: NICE[sp.slug] || sp.name, lgSlug: lg.slug, lg: lg.name || lg.abbreviation, e});
+    }
+  }
+  if(!seen.size && results.every(r => r.status !== "fulfilled")){
+    $("stamp").textContent = "Couldn't update";
+    $("out").innerHTML = `<div class="err">Couldn't reach the scores feed. Check your internet connection, then press Refresh.</div>`;
+  } else {
+    data = [...seen.values()].sort((a,b) =>
+      (ORDER[a.e.status] ?? 1) - (ORDER[b.e.status] ?? 1) ||
+      (a.e.status === "post" ? new Date(b.e.date) - new Date(a.e.date) : new Date(a.e.date) - new Date(b.e.date)));
+    $("stamp").textContent = "Updated " + new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+    render();
+  }
+  clearTimeout(timer); timer = setTimeout(load, 60000);
+}
+
+function when(e){
+  const d = new Date(e.date); if(isNaN(d)) return "";
+  const today = new Date().toDateString() === d.toDateString();
+  const day = today ? "Today" : d.toLocaleDateString([], {weekday:"short",day:"numeric",month:"short"});
+  return (e.status === "in" && !today ? "Started " : "") + day + ", " + d.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}) + " your time";
+}
+const teamsOf = e => (e.competitors || []).slice().sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
+const venueOf = e => e.location || (e.locationAndDate || "").replace(/^at\s+/, "").replace(/,[^,]*\d{4}$/, "") || "Venue not announced";
+function statusLabel(e){
+  if(e.status === "in") return e.summary && e.summary !== "Live" ? "Live · " + e.summary : "Live";
+  if(e.status === "pre") return "Upcoming";
+  return e.summary || "Finished";
+}
+function logo(c, size){
+  const name = c.displayName || c.name || "TBD", ini = esc(name.replace(/[^A-Za-z ]/g,"").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase() || "?");
+  const src = c.logo || c.flag?.href;
+  return src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.outerHTML='<span class=ph>${ini}</span>'">` : `<span class="ph">${ini}</span>`;
+}
+const team = c => `<div class="team${c.winner ? " win" : ""}">${logo(c)}<span class="nm">${esc(c.displayName || c.name || "TBD")}</span><span class="score">${esc(c.score || "")}</span></div>`;
+
+function card(row, i){
+  const {e} = row, t = teamsOf(e);
+  return `<button type="button" class="card ${e.status}" data-i="${i}">
+    <div class="top"><span class="lg"><span class="sport">${esc(row.spName)}</span><span class="name">${esc(row.lg)}${e.title && e.title !== row.lg ? " · " + esc(e.title) : ""}</span></span><span class="pill ${e.status}">${esc(statusLabel(e))}</span></div>
+    ${t.length ? t.map(team).join("") : `<div class="team"><span class="ph">★</span><span class="nm">${esc(e.name)}</span><span></span></div>`}
+    <div class="where">${pin}<div><b>${esc(venueOf(e))}</b><span class="when">${esc(when(e))}</span></div></div>
+    <span class="cta">${play} Video, ground &amp; where to watch</span>
+  </button>`;
+}
+
+let shown = [];
+function render(){
+  const counts = {all: data.length};
+  data.forEach(r => counts[r.sp] = (counts[r.sp] || 0) + 1);
+  const sports = Object.keys(counts).filter(k => k !== "all").sort((a,b) => counts[b] - counts[a]);
+  if(sport !== "all" && !counts[sport]) sport = "all";
+  $("sports").innerHTML = [["all","All sports"], ...sports.map(s => [s, data.find(r => r.sp === s).spName])]
+    .map(([k,l]) => `<button type="button" class="chip" data-s="${k}" aria-pressed="${k === sport}">${esc(l)}<small>${counts[k]}</small></button>`).join("");
+
+  const n = s => data.filter(r => r.e.status === s).length;
+  $("totals").innerHTML = `<span class="l"><b>${n("in")}</b>live now</span><span><b>${n("pre")}</b>coming up</span><span><b>${n("post")}</b>finished</span><span><b>${sports.length}</b>sports</span>`;
+
+  const needle = q.trim().toLowerCase();
+  shown = data.filter(r => (sport === "all" || r.sp === sport) && (!needle ||
+    [r.spName, r.lg, r.e.name, r.e.location, r.e.description, r.e.locationAndDate, ...teamsOf(r.e).map(c => c.displayName)].join(" ").toLowerCase().includes(needle)));
+  if(!shown.length){
+    $("out").innerHTML = `<div class="empty">Nothing matches “${esc(q)}”. Try a different team, city or league.</div>`;
+    return;
+  }
+  const secs = [["in","Live now"],["pre","Coming up"],["post","Finished"]];
+  $("out").innerHTML = secs.map(([s,label]) => {
+    const idx = shown.map((r,i) => [r,i]).filter(([r]) => (r.e.status || "pre") === s);
+    if(!idx.length) return "";
+    return `<section class="section ${s}"><h2>${label} <small>${idx.length} match${idx.length > 1 ? "es" : ""}</small></h2><div class="grid">${idx.map(([r,i]) => card(r,i)).join("")}</div></section>`;
+  }).join("");
+}
+
+// ---------- detail panel ----------
+let openId = 0;
+async function openMatch(row){
+  const {e} = row, id = ++openId, t = teamsOf(e);
+  $("dleague").textContent = row.spName + " · " + row.lg + (e.title ? " · " + e.title : "");
+  $("dtitle").textContent = t.length ? t.map(c => c.displayName).join(" vs ") : e.name;
+  const ytq = encodeURIComponent((t.length ? t.map(c => c.displayName).join(" vs ") : e.name) + " " + row.lg + " highlights");
+  $("dbody").innerHTML = `
+    <div class="player" id="player"><div class="novideo">Looking for video…</div></div>
+    <div class="clips" id="clips"></div>
+    <div>${t.map(team).join("")}</div>
+    <div class="facts">
+      <div class="fact"><h4>Ground</h4><p id="venue">${esc(venueOf(e))}<span id="city"></span></p></div>
+      <div class="fact"><h4>When</h4><p>${esc(statusLabel(e))}<span>${esc(when(e))}</span></p></div>
+      <div class="fact"><h4>Watch live on</h4><div class="tv" id="tv"><span class="muted">Checking…</span></div></div>
+    </div>
+    ${e.description ? `<p class="muted">${esc(e.description)}</p>` : ""}
+    <div class="links">
+      ${e.link ? `<a class="btn" href="${esc(e.link)}" target="_blank" rel="noopener">Full scorecard on ESPN</a>` : ""}
+      <a class="btn" href="https://www.youtube.com/results?search_query=${ytq}" target="_blank" rel="noopener">Search highlights on YouTube</a>
+    </div>`;
+  $("dlg").showModal();
+
+  let s = null;
+  try{ const r = await fetch(SUMMARY(row.sp, row.lgSlug, e.id)); if(r.ok) s = await r.json(); }catch{}
+  if(id !== openId) return;
+
+  const v = s?.gameInfo?.venue;
+  if(v){
+    $("venue").firstChild.textContent = v.fullName || venueOf(e);
+    const place = [v.address?.city, v.address?.state, v.address?.country].filter(Boolean).join(", ");
+    $("city").textContent = place + (v.capacity ? ` · capacity ${Number(v.capacity).toLocaleString()}` : "");
+  }
+
+  const tv = [...new Set((s?.broadcasts || []).map(b => b.media?.shortName || b.station || b.media?.name).filter(Boolean))];
+  $("tv").innerHTML = tv.length ? tv.map(n => `<span>${esc(n)}</span>`).join("") : `<span class="muted">Not listed. Check your local sports channel.</span>`;
+
+  const clips = (s?.videos || []).map(x => ({
+    title: x.headline || x.title || "Video", thumb: x.thumbnail || x.images?.[0]?.url,
+    src: x.links?.source?.href || x.links?.source?.HD?.href || x.links?.mobile?.source?.href
+  })).filter(c => c.src && /\.mp4(\?|$)/.test(c.src));
+
+  if(!clips.length){
+    $("player").innerHTML = `<div class="novideo">${e.status === "pre" ? "The match hasn't started yet. Highlights appear here once it's played." :
+      "No video clips for this match yet."}<br><br><a href="https://www.youtube.com/results?search_query=${ytq}" target="_blank" rel="noopener">Search for highlights on YouTube →</a></div>`;
+    return;
+  }
+  const show = k => {
+    $("player").innerHTML = `<video controls playsinline preload="metadata" poster="${esc(clips[k].thumb || "")}" src="${esc(clips[k].src)}"></video>`;
+    [...$("clips").children].forEach((b,j) => b.setAttribute("aria-pressed", j === k));
+  };
+  $("clips").innerHTML = clips.length > 1 ? clips.map((c,k) =>
+    `<button type="button" class="clip" data-k="${k}">${c.thumb ? `<img src="${esc(c.thumb)}" alt="" loading="lazy">` : ""}<span>${esc(c.title)}</span></button>`).join("") : "";
+  $("clips").onclick = ev => { const b = ev.target.closest("[data-k]"); if(b){ show(+b.dataset.k); $("player").querySelector("video")?.play().catch(()=>{}); } };
+  show(0);
+}
+function closeMatch(){ openId++; $("player")?.querySelector("video")?.pause(); $("dlg").close(); }
+
+$("out").addEventListener("click", ev => { const b = ev.target.closest("[data-i]"); if(b) openMatch(shown[+b.dataset.i]); });
+$("sports").addEventListener("click", ev => { const b = ev.target.closest("[data-s]"); if(b){ sport = b.dataset.s; render(); } });
+$("q").addEventListener("input", ev => { q = ev.target.value; render(); });
+$("reload").addEventListener("click", load);
+$("dclose").addEventListener("click", closeMatch);
+$("dlg").addEventListener("click", ev => { if(ev.target === $("dlg")) closeMatch(); });
+$("dlg").addEventListener("close", () => { openId++; document.querySelector("#player video")?.pause(); });
+
+// ---------- sign-in ----------
+// Only a fingerprint (SHA-256 of "email:password") is stored here, never the password itself.
+const LOGIN_HASHES = ["d68c323ad76373033b16925a941c3ae1b89cb20f09f1aa789ea81306d77f7af7", "26ab940369f089cc414d75e1e5696ec4296d16c6c4c2959849b0934e866b73fe", "5bbdeaafa30cfe3152fa4177535ef716e2dba97814796a6b7b6efd53af1895b5", "c13f2e09447a051bdd3919e9c4a1913548db45d329f456062534e8e92a95235b", "6b3282d3f2e612cc5e68294d1e490b306043d8a367823d2b1dd5064791b22713", "effc8c57ecc5eb8872c38506e78b58807fa218880d9a897e046aaa3cc5d88a5d", "2c8951fca14430b9657d71756d39729207aa65099e04d97f600cc980129f361c"]; // demo, guest, admin, fan, player, coach, viewer
+const SESSION_KEY = "mf-signed-in";
+const ls = {
+  get(s,k){ try{ return s.getItem(k) }catch{ return null } },
+  set(s,k,v){ try{ s.setItem(k,v) }catch{} },
+  del(k){ try{ localStorage.removeItem(k); sessionStorage.removeItem(k) }catch{} }
+};
+async function sha256(text){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+}
+let started = false;
+function showApp(){
+  $("login").hidden = true; $("app").hidden = false;
+  if(!started){ started = true; load(); }
+}
+$("loginForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  $("go").disabled = true; $("bad").hidden = true;
+  let hash = "";
+  try{ hash = await sha256($("user").value.trim().toLowerCase() + ":" + $("pass").value.trim()); }
+  catch{ $("go").disabled = false; $("bad").textContent = "This browser blocked the sign-in check. Open the app in Chrome or Edge."; $("bad").hidden = false; return; }
+  const ok = LOGIN_HASHES.includes(hash);
+  $("go").disabled = false;
+  if(!ok){ $("bad").textContent = "That email or password isn't right. Tick Show password to check what you typed."; $("bad").hidden = false; $("pass").select(); return; }
+  ls.set($("keep").checked ? localStorage : sessionStorage, SESSION_KEY, hash);
+  $("pass").value = "";
+  showApp();
+});
+$("showpw").addEventListener("change", ev => { $("pass").type = ev.target.checked ? "text" : "password"; });
+$("logout").addEventListener("click", () => {
+  ls.del(SESSION_KEY); clearTimeout(timer); started = false;
+  $("app").hidden = true; $("login").hidden = false; $("user").focus();
+});
+if(LOGIN_HASHES.includes(ls.get(localStorage, SESSION_KEY)) || LOGIN_HASHES.includes(ls.get(sessionStorage, SESSION_KEY))) showApp();
+else $("user").focus();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# Sign-in details stay on this computer only
+login-details.txt
+.claude/
+.netlify/
+node_modules/
