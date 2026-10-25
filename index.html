@@ -116,11 +116,19 @@ dialog::backdrop{background:var(--scrim)}
 .login .go{background:var(--accent);color:var(--panel);border:0;border-radius:10px;padding:12px;font:700 18px/1 "Barlow Condensed",sans-serif;letter-spacing:.06em;text-transform:uppercase}
 .login .go:disabled{opacity:.6;cursor:wait}
 .login .bad{color:var(--live);font-size:13.5px;margin:0}
+.gwrap{display:flex;flex-direction:column;gap:14px;align-items:center}
+.gwrap[hidden]{display:none}
+.or{display:flex;align-items:center;gap:10px;width:100%;margin:0;color:var(--muted);font-size:13px}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 @media (max-width:420px){h1{font-size:36px}.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <section class="login" id="login">
+  <div class="gwrap" id="gwrap">
+    <div id="gbtn"></div>
+    <p class="or"><span>or sign in with email</span></p>
+  </div>
   <form id="loginForm" novalidate>
     <div>
       <h1><svg class="logo" viewBox="0 0 140 140" aria-hidden="true"><rect width="140" height="140" rx="30" fill="#eef1ec"/><rect x="22" y="32" width="96" height="76" rx="6" fill="none" stroke="#1c6e47" stroke-width="7"/><line x1="70" y1="32" x2="70" y2="108" stroke="#1c6e47" stroke-width="5"/><circle cx="70" cy="70" r="15" fill="none" stroke="#1c6e47" stroke-width="5"/><circle class="logo-dot" cx="70" cy="70" r="8" fill="#d3362b"/></svg>Stadia</h1>
@@ -160,6 +168,7 @@ dialog::backdrop{background:var(--scrim)}
   <div class="dbody" id="dbody"></div>
 </dialog>
 
+<script src="https://accounts.google.com/gsi/client" async defer onload="initGoogle()"></script>
 <script>
 // Every sport feed we pull and merge. "" = ESPN's own top-events mix (catches NFL, college, golf, volleyball…).
 const FEEDS = ["", "cricket","soccer","tennis","basketball","football","baseball","hockey","rugby","mma","golf","volleyball","racing"];
@@ -357,9 +366,34 @@ $("loginForm").addEventListener("submit", async ev => {
 $("showpw").addEventListener("change", ev => { $("pass").type = ev.target.checked ? "text" : "password"; });
 $("logout").addEventListener("click", () => {
   ls.del(SESSION_KEY); clearTimeout(timer); started = false;
+  if(window.google) google.accounts.id.disableAutoSelect();
   $("app").hidden = true; $("login").hidden = false; $("user").focus();
 });
-if(LOGIN_HASHES.includes(ls.get(localStorage, SESSION_KEY)) || LOGIN_HASHES.includes(ls.get(sessionStorage, SESSION_KEY))) showApp();
+// ---------- Google sign-in ----------
+// Paste your Web client ID from Google Cloud Console here (see the setup steps given with this change).
+const GOOGLE_CLIENT_ID = "1081028209572-kmt22cc5c8h3j4fqmrshrpiullq4ib81.apps.googleusercontent.com";
+const googleReady = () => GOOGLE_CLIENT_ID.endsWith(".apps.googleusercontent.com");
+const isSignedIn = v => LOGIN_HASHES.includes(v) || (typeof v === "string" && v.startsWith("google:"));
+
+function initGoogle(){
+  if(!googleReady() || !window.google){ $("gwrap").hidden = true; return; }
+  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogle, auto_select: false });
+  google.accounts.id.renderButton($("gbtn"), { theme: "outline", size: "large", text: "continue_with", width: 320, shape: "pill" });
+}
+function onGoogle(resp){
+  try{
+    const b64 = resp.credential.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const claims = JSON.parse(decodeURIComponent(escape(atob(b64))));
+    if(claims.aud !== GOOGLE_CLIENT_ID || claims.exp * 1000 < Date.now()) throw new Error("bad token");
+    ls.set(localStorage, SESSION_KEY, "google:" + claims.email);
+    showApp();
+  }catch{
+    $("bad").textContent = "Google sign-in didn't work. Try again, or use email instead.";
+    $("bad").hidden = false;
+  }
+}
+
+if(isSignedIn(ls.get(localStorage, SESSION_KEY)) || isSignedIn(ls.get(sessionStorage, SESSION_KEY))) showApp();
 else $("user").focus();
 </script>
 </body>
