@@ -48,7 +48,14 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--panel)}
 .chip[aria-pressed="true"] small{color:inherit;opacity:.8}
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-block:12px 22px}
-#q{flex:1 1 260px;min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:10px 12px;font:inherit;color:var(--ink)}
+#q{flex:1 1 260px;min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:10px 12px;font:inherit;font-size:16px;color:var(--ink)}
+.askbar{flex-direction:column;align-items:stretch;gap:8px}
+.askbar #q{flex:none;width:100%}
+.ask{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:13px;color:var(--muted)}
+.answer{margin:0;font-size:14px;min-height:1.4em}
+.examples{display:flex;flex-wrap:wrap;gap:6px}
+.ex{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px;font-size:13px;color:var(--ink)}
+.ex:hover{border-color:var(--accent)}
 .section{margin-bottom:30px}
 .section h2{font:700 24px/1 "Barlow Condensed","Arial Narrow",sans-serif;text-transform:uppercase;letter-spacing:.03em;margin:0 0 12px;display:flex;align-items:center;gap:10px}
 .section h2 small{font:500 13px Figtree,sans-serif;color:var(--muted);text-transform:none;letter-spacing:0}
@@ -154,8 +161,17 @@ dialog::backdrop{background:var(--scrim)}
 
   <div class="totals" id="totals"></div>
   <nav class="chips" id="sports" aria-label="Sport"></nav>
-  <div class="bar">
-    <input id="q" type="search" placeholder="Search any team, player, league, ground or city…" autocomplete="off">
+  <div class="bar askbar">
+    <label class="ask" for="q"><span>Search matches</span>
+      <input id="q" type="search" placeholder="Try: where is India playing?  ·  Lakers stadium  ·  Bangladesh channel" autocomplete="off">
+    </label>
+    <p class="answer" id="answer" aria-live="polite"></p>
+    <div class="examples">
+      <button type="button" class="ex" data-ex="India">India</button>
+      <button type="button" class="ex" data-ex="stadium today">Stadium today</button>
+      <button type="button" class="ex" data-ex="where to watch">Where to watch</button>
+      <button type="button" class="ex" data-ex="Lakers">Lakers</button>
+    </div>
   </div>
   <main id="out"><div class="empty">Loading matches from around the world…</div></main>
 </div>
@@ -251,11 +267,14 @@ function render(){
   const n = s => data.filter(r => r.e.status === s).length;
   $("totals").innerHTML = `<span class="l"><b>${n("in")}</b>live now</span><span><b>${n("pre")}</b>coming up</span><span><b>${n("post")}</b>finished</span><span><b>${sports.length}</b>sports</span>`;
 
-  const needle = q.trim().toLowerCase();
-  shown = data.filter(r => (sport === "all" || r.sp === sport) && (!needle ||
-    [r.spName, r.lg, r.e.name, r.e.location, r.e.description, r.e.locationAndDate, ...teamsOf(r.e).map(c => c.displayName)].join(" ").toLowerCase().includes(needle)));
+  // Search matches: drop question words, then match the rest against each match's details.
+  const tokens = askTokens(q);
+  let scored = data.filter(r => sport === "all" || r.sp === sport).map(r => [r, tokens.length ? askScore(r, tokens) : 1]);
+  if(tokens.length) scored = scored.filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1]);
+  shown = scored.map(([r]) => r);
+  answer(shown, tokens);
   if(!shown.length){
-    $("out").innerHTML = `<div class="empty">Nothing matches “${esc(q)}”. Try a different team, city or league.</div>`;
+    $("out").innerHTML = `<div class="empty">No matches for “${esc(q)}”.</div>`;
     return;
   }
   const secs = [["in","Live now"],["pre","Coming up"],["post","Finished"]];
@@ -264,6 +283,34 @@ function render(){
     if(!idx.length) return "";
     return `<section class="section ${s}"><h2>${label} <small>${idx.length} match${idx.length > 1 ? "es" : ""}</small></h2><div class="grid">${idx.map(([r,i]) => card(r,i)).join("")}</div></section>`;
   }).join("");
+}
+
+// ---------- Search matches helpers ----------
+const ASK_STOP = new Set(("where what which when who is are was be the a an of in on at to for and or vs v versus " +
+  "match matches game games today tonight now live playing play plays channel channels watch broadcast tv show me " +
+  "give find tell do does will can you please stadium stadiums ground grounds venue venues city time").split(" "));
+function askTokens(text){
+  return text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").split(/[^a-z0-9]+/)
+    .filter(t => t && !ASK_STOP.has(t));
+}
+function askScore(r, tokens){
+  const e = r.e;
+  const hay = [r.spName, r.sp, r.lg, e.name, e.shortName, e.title, e.location, e.description, e.locationAndDate,
+    ...teamsOf(e).map(c => c.displayName)].join(" ").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return tokens.filter(t => hay.includes(t)).length;
+}
+function answer(list, tokens){
+  const box = $("answer");
+  if(!q.trim()){ box.textContent = ""; return; }
+  if(!tokens.length){ box.textContent = "Type a team, league, ground or city, for example India, Lakers or Wankhede."; return; }
+  if(!list.length){
+    box.textContent = `I couldn't find “${q.trim()}” in today's matches. Try a team or city name. Player names only appear in some match details.`;
+    return;
+  }
+  const top = list[0], e = top.e, t = teamsOf(e).map(c => c.displayName).join(" vs ") || e.name;
+  const more = list.length > 1 ? ` ${list.length - 1} more below.` : "";
+  const tv = /channel|watch|tv|broadcast/i.test(q) ? " Tap a match to see where to watch it." : "";
+  box.textContent = `${t} at ${venueOf(e)} (${statusLabel(e)}).${more}${tv}`;
 }
 
 // ---------- detail panel ----------
@@ -327,6 +374,10 @@ function closeMatch(){ openId++; $("player")?.querySelector("video")?.pause(); $
 $("out").addEventListener("click", ev => { const b = ev.target.closest("[data-i]"); if(b) openMatch(shown[+b.dataset.i]); });
 $("sports").addEventListener("click", ev => { const b = ev.target.closest("[data-s]"); if(b){ sport = b.dataset.s; render(); } });
 $("q").addEventListener("input", ev => { q = ev.target.value; render(); });
+document.querySelector(".examples").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-ex]"); if(!b) return;
+  q = b.dataset.ex; $("q").value = q; render();
+});
 $("reload").addEventListener("click", load);
 $("dclose").addEventListener("click", closeMatch);
 $("dlg").addEventListener("click", ev => { if(ev.target === $("dlg")) closeMatch(); });
