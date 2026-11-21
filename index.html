@@ -52,7 +52,16 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .askbar{flex-direction:column;align-items:stretch;gap:8px}
 .askbar #q{flex:none;width:100%}
 .ask{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:13px;color:var(--muted)}
-.answer{margin:0;font-size:14px;min-height:1.4em}
+.answer{margin:0;display:flex;align-items:flex-start;gap:10px;min-height:44px}
+.answer:empty{display:none}
+.answer .av{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--panel);margin-top:2px}
+.answer .bubble{background:var(--panel);border:1px solid var(--line);border-radius:4px 16px 16px 16px;padding:10px 14px;font-size:14.5px;line-height:1.5;max-width:70ch;animation:rise .35s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.answer .bubble{animation:none}}
+.ask-field{position:relative}
+.ask-field::before{content:"";position:absolute;left:14px;top:50%;width:16px;height:16px;transform:translateY(-50%);background:var(--accent);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z'/%3E%3C/svg%3E") center/contain no-repeat;pointer-events:none}
+.askbar #q.ai-input{padding:13px 16px 13px 42px;border-radius:999px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.askbar #q.ai-input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
 .examples{display:flex;flex-wrap:wrap;gap:6px}
 .ex{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px;font-size:13px;color:var(--ink)}
 .ex:hover{border-color:var(--accent)}
@@ -163,7 +172,7 @@ dialog::backdrop{background:var(--scrim)}
   <nav class="chips" id="sports" aria-label="Sport"></nav>
   <div class="bar askbar">
     <label class="ask" for="q"><span>Search matches</span>
-      <input id="q" type="search" placeholder="Try: where is India playing?  ·  Lakers stadium  ·  Bangladesh channel" autocomplete="off">
+      <span class="ask-field"><input id="q" class="ai-input" type="search" placeholder="Try: where is India playing?  ·  Lakers stadium  ·  Bangladesh channel" autocomplete="off"></span>
     </label>
     <p class="answer" id="answer" aria-live="polite"></p>
     <div class="examples">
@@ -257,6 +266,7 @@ function card(row, i){
 
 let shown = [];
 function render(){
+  playerSearchId++; // cancel any player search still running for an older question
   const counts = {all: data.length};
   data.forEach(r => counts[r.sp] = (counts[r.sp] || 0) + 1);
   const sports = Object.keys(counts).filter(k => k !== "all").sort((a,b) => counts[b] - counts[a]);
@@ -273,6 +283,7 @@ function render(){
   if(tokens.length) scored = scored.filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1]);
   shown = scored.map(([r]) => r);
   answer(shown, tokens);
+  if(!shown.length && tokens.length){ runPlayerSearch(tokens); return; }
   if(!shown.length){
     $("out").innerHTML = `<div class="empty">No matches for “${esc(q)}”.</div>`;
     return;
@@ -299,18 +310,67 @@ function askScore(r, tokens){
     ...teamsOf(e).map(c => c.displayName)].join(" ").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   return tokens.filter(t => hay.includes(t)).length;
 }
+const SPARK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9zM19 15l.9 2.6L22.5 18.5l-2.6.9L19 22l-.9-2.6L15.5 18.5l2.6-.9z"/></svg>';
+function say(text){
+  $("answer").innerHTML = `<span class="av">${SPARK}</span><span class="bubble">${esc(text)}</span>`;
+}
 function answer(list, tokens){
-  const box = $("answer");
-  if(!q.trim()){ box.textContent = ""; return; }
-  if(!tokens.length){ box.textContent = "Type a team, league, ground or city, for example India, Lakers or Wankhede."; return; }
+  if(!q.trim()){ say("Hi! Ask me about today's matches. Try a team, a city or a ground."); return; }
+  if(!tokens.length){ say("Tell me a team, league, ground or city, for example India, Lakers or Wankhede."); return; }
   if(!list.length){
-    box.textContent = `I couldn't find “${q.trim()}” in today's matches. Try a team or city name. Player names only appear in some match details.`;
+    say(`I couldn't find “${q.trim()}” in today's matches. Try a team or city name. Player names only appear in some match details.`);
     return;
   }
   const top = list[0], e = top.e, t = teamsOf(e).map(c => c.displayName).join(" vs ") || e.name;
   const more = list.length > 1 ? ` ${list.length - 1} more below.` : "";
   const tv = /channel|watch|tv|broadcast/i.test(q) ? " Tap a match to see where to watch it." : "";
-  box.textContent = `${t} at ${venueOf(e)} (${statusLabel(e)}).${more}${tv}`;
+  say(`${t} at ${venueOf(e)} (${statusLabel(e)}).${more}${tv}`);
+}
+
+// ---------- Player search (live and finished matches only) ----------
+const playerCache = new Map();
+let playerSearchId = 0;
+const norm = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+function squadOf(r){
+  const key = r.sp + ":" + r.e.id;
+  if(!playerCache.has(key)){
+    playerCache.set(key, fetch(SUMMARY(r.sp, r.lgSlug, r.e.id))
+      .then(x => x.ok ? x.json() : null)
+      .then(j => j ? (j.rosters || []).flatMap(t => (t.roster || []).map(p => p.athlete && p.athlete.displayName).filter(Boolean)) : [])
+      .catch(() => []));
+  }
+  return playerCache.get(key);
+}
+async function findPlayer(tokens){
+  // Upcoming matches have no squad lists yet, so only live and finished matches are checked (newest first, up to 80).
+  const pool = data.filter(r => r.e.status === "in" || r.e.status === "post").slice(0, 80);
+  const found = [];
+  for(let i = 0; i < pool.length; i += 10){
+    const batch = pool.slice(i, i + 10);
+    const squads = await Promise.all(batch.map(squadOf));
+    batch.forEach((r, j) => {
+      const player = squads[j].find(n => tokens.every(t => norm(n).includes(t)));
+      if(player) found.push({r, player});
+    });
+  }
+  return found;
+}
+async function runPlayerSearch(tokens){
+  const id = ++playerSearchId;
+  say("Checking squad lists in live and finished matches. This can take a few seconds.");
+  $("out").innerHTML = `<div class="empty">Checking squads…</div>`;
+  const found = await findPlayer(tokens);
+  if(id !== playerSearchId) return;
+  if(!found.length){
+    say(`I couldn't find “${q.trim()}” as a team or a player. Player names only show once a squad list is published, which usually happens during or after a match. Upcoming matches aren't checked.`);
+    $("out").innerHTML = `<div class="empty">No live or finished match lists “${esc(q)}”.</div>`;
+    return;
+  }
+  shown = found.map(x => x.r);
+  const first = found[0];
+  const names = teamsOf(first.r.e).map(c => c.displayName).join(" vs ") || first.r.e.name;
+  say(`${first.player} is in ${found.length} live or finished match${found.length > 1 ? "es" : ""}. Top result: ${names} at ${venueOf(first.r.e)} (${statusLabel(first.r.e)}).`);
+  $("out").innerHTML = `<section class="section"><h2>Player matches <small>${found.length} found</small></h2><div class="grid">${shown.map((r, i) => card(r, i)).join("")}</div></section>`;
 }
 
 // ---------- detail panel ----------
@@ -374,6 +434,7 @@ function closeMatch(){ openId++; $("player")?.querySelector("video")?.pause(); $
 $("out").addEventListener("click", ev => { const b = ev.target.closest("[data-i]"); if(b) openMatch(shown[+b.dataset.i]); });
 $("sports").addEventListener("click", ev => { const b = ev.target.closest("[data-s]"); if(b){ sport = b.dataset.s; render(); } });
 $("q").addEventListener("input", ev => { q = ev.target.value; render(); });
+say("Hi! Ask me about today's matches. Try a team, a city or a ground.");
 document.querySelector(".examples").addEventListener("click", ev => {
   const b = ev.target.closest("[data-ex]"); if(!b) return;
   q = b.dataset.ex; $("q").value = q; render();
